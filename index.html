@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DanAi</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:var(--tg-theme-bg-color,#18222d);--card:var(--tg-theme-secondary-bg-color,#232e3c);--text:var(--tg-theme-text-color,#fff);--muted:var(--tg-theme-hint-color,#8a96a3);--accent:var(--tg-theme-button-color,#2ea6ff);--accent-text:var(--tg-theme-button-text-color,#fff)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);min-height:100vh;padding:12px;padding-bottom:40px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border-radius:14px;padding:16px}
+.header{display:flex;align-items:center;gap:12px}
+.avatar{width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.name{font-size:18px;font-weight:600}
+.title-badge{font-size:12px;color:#fff;background:#ff0055;padding:4px 10px;border-radius:10px;display:inline-block;margin-top:6px;font-weight:bold;cursor:pointer}
+.coins{font-size:14px;font-weight:bold;color:#ffaa00;background:rgba(255,170,0,.1);padding:6px 10px;border-radius:8px;margin-left:auto;white-space:nowrap}
+.stat-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px}
+.bar{height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden}
+.fill{height:100%;background:var(--accent);width:0%;transition:width .3s}
+.btn{width:100%;background:var(--accent);color:var(--accent-text);border:none;padding:14px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;margin-top:10px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.fact{font-size:14px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clickable{cursor:pointer}
+.stamp{font-size:11px;color:var(--muted);text-align:center}
+.shop-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.shop-item:last-child{border-bottom:none}
+.shop-title{font-size:14px;font-weight:600}
+.shop-desc{font-size:11px;color:var(--muted);margin-top:2px}
+.buy-btn{background:var(--accent);color:var(--accent-text);border:none;padding:8px 12px;border-radius:8px;font-weight:bold;font-size:13px;flex-shrink:0;min-width:64px}
+.buy-btn:disabled{background:#555;color:#aaa}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .2s;z-index:1000;display:flex;flex-direction:column;justify-content:flex-end}
+.modal-overlay.active{opacity:1;pointer-events:auto}
+.modal-content{background:var(--card);border-radius:20px 20px 0 0;padding:20px;height:80vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.modal-overlay.active .modal-content{transform:translateY(0)}
+.drag-area{width:100%;padding-bottom:10px;display:flex;justify-content:center;touch-action:none}
+.modal-handle{width:40px;height:5px;background:#666;border-radius:3px}
+.modal-title{font-weight:bold;margin-bottom:16px;text-align:center}
+.list-area{display:flex;flex-direction:column;gap:10px;overflow-y:auto;padding-bottom:20px;flex-grow:1}
+.tag-item{background:rgba(255,255,255,.08);padding:14px;border-radius:12px;text-align:center;font-weight:600;flex-shrink:0;cursor:pointer}
+.tag-item.on{outline:2px solid var(--accent)}
+.ach-item{background:rgba(255,255,255,.05);padding:12px;border-radius:12px;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.ach-header{display:flex;justify-content:space-between;font-weight:bold;font-size:14px}
+.ach-desc{font-size:12px;color:var(--muted)}
+.ach-reward{font-size:12px;color:#ffaa00;font-weight:bold}
+.pbar{height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:#4cd964}
+.done{color:#4cd964}
+.facts-text{font-size:16px;line-height:1.6;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<div class="card header">
+  <div class="avatar" id="ava"><span id="ava-txt">U</span></div>
+  <div>
+    <div class="name" id="u-name">Гость</div>
+    <div class="title-badge" id="u-title" onclick="openModal('tag-modal')">Новичок</div>
+  </div>
+  <div class="coins" id="u-coins">🪙 0</div>
+</div>
+
+<div class="card">
+  <div class="stat-row"><span id="u-lvl">Уровень 1</span><span id="u-xp" style="color:var(--muted)">0 / 100</span></div>
+  <div class="bar"><div class="fill" id="u-bar"></div></div>
+</div>
+
+<div class="card clickable" onclick="openModal('facts-modal')">
+  <div class="row"><div style="font-weight:bold">🧠 Что бот знает</div><div style="color:var(--muted);font-size:12px">Открыть ›</div></div>
+  <div class="fact" id="facts-preview">Пока ничего…</div>
+</div>
+
+<div class="card clickable" onclick="openModal('ach-modal')">
+  <div class="row"><div style="font-weight:bold">🏆 Достижения</div><div style="color:var(--muted);font-size:12px">Открыть ›</div></div>
+  <div class="fact" id="ach-preview">Загрузка…</div>
+</div>
+
+<div class="card">
+  <div style="font-weight:bold;margin-bottom:6px">🛒 Магазин</div>
+  <div id="shop"></div>
+</div>
+
+<div class="stamp" id="stamp"></div>
+
+<div class="modal-overlay" id="tag-modal" onclick="closeModal('tag-modal')">
+  <div class="modal-content" id="tag-modal-content" onclick="event.stopPropagation()">
+    <div class="drag-area" data-m="tag-modal"><div class="modal-handle"></div></div>
+    <div class="modal-title">Выбери титул</div>
+    <div class="list-area" id="tag-list"></div>
+    <button class="btn" onclick="closeModal('tag-modal')">Закрыть</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ach-modal" onclick="closeModal('ach-modal')">
+  <div class="modal-content" id="ach-modal-content" onclick="event.stopPropagation()">
+    <div class="drag-area" data-m="ach-modal"><div class="modal-handle"></div></div>
+    <div class="modal-title">Достижения</div>
+    <div class="list-area" id="ach-list"></div>
+    <button class="btn" onclick="closeModal('ach-modal')">Закрыть</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="facts-modal" onclick="closeModal('facts-modal')">
+  <div class="modal-content" id="facts-modal-content" onclick="event.stopPropagation()">
+    <div class="drag-area" data-m="facts-modal"><div class="modal-handle"></div></div>
+    <div class="modal-title">Досье</div>
+    <div class="list-area"><div class="facts-text" id="facts-full">Пока ничего…</div></div>
+    <button class="btn" onclick="closeModal('facts-modal')">Закрыть</button>
+  </div>
+</div>
+
+<script>
+const BOT="DanStudios_DanAi_bot";
+const BIN="https://api.jsonbin.io/v3/b/6ae231fb7e19fe510f394da3/latest";
+const READ_KEY="$2a$10$nRIFayFf7vHCyJn14.ACiumO5jrXsOMFMxmWGgdb2SsI0gLeYo7Yy";
+const POLL_MS=45000, UNMUTE_CD=120;
+const tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){tg.expand();tg.ready();}
+const $=id=>document.getElementById(id);
+
+const A=[
+["msg1","Первое слово","1 сообщение","total_msgs",1,10,""],
+["msg10","Болтун","10 сообщений","total_msgs",10,20,""],
+["msg50","Душа компании","50 сообщений","total_msgs",50,50,"💖 Душа компании"],
+["msg100","Оратор","100 сообщений","total_msgs",100,100,""],
+["msg500","Король чата","500 сообщений","total_msgs",500,500,"👑 Король чата"],
+["msg1000","Бог общения","1000 сообщений","total_msgs",1000,1000,"🗣️ Бог общения"],
+["lvl5","Опытный","5 уровень","lvl",5,50,"⭐ Опытный"],
+["lvl10","Ветеран","10 уровень","lvl",10,200,"🌟 Ветеран"],
+["quiz1","Викторинный нуб","1 победа в викторине","quiz_wins",1,30,""],
+["quiz5","Знаток","5 побед в викторине","quiz_wins",5,150,"🧠 Знаток"],
+["quiz10","Гений","10 побед в викторине","quiz_wins",10,300,"🦉 Гений"],
+["quiz25","Эрудит","25 побед в викторине","quiz_wins",25,500,"📚 Эрудит"],
+["slots5","Фортуна","5 побед в казино","slots_wins",5,100,"🎲 Фортуна"],
+["duel1","Дуэлянт","1 победа в дуэли","duels",1,50,"🤺 Дуэлянт"],
+["duel5","Гладиатор","5 побед в дуэлях","duels",5,250,"🛡️ Гладиатор"],
+["rich1","Транжира","Потратить 1000 монет","spent",1000,100,""],
+["muted1","Шумный сосед","1 мут","muted",1,0,"🤐 Шумный сосед"],
+["muted5","Токсик","5 мутов","muted",5,50,"☠️ Токсик"],
+["night1","Ночной житель","Написать в 3–5 утра","night",1,20,"🌚 Ночной житель"],
+["early1","Ранняя пташка","Написать в 6–8 утра","early",1,20,"🌅 Ранняя пташка"]
+];
+
+const SHOP=[
+["buy_unmute","Размут на 1 минуту","Потом мут вернётся. Повтор через 2 минуты",50,"unmute"],
+["buy_ticket","🎟️ Лотерейный билет","10% шанс выиграть 10 000",100,"ticket"],
+["buy_random_title","🎲 Случайный титул","Крутой рандомный титул",5000,"random_title"],
+["buy_vip","💎 VIP-статус","Значок в профиле",1000,"vip"],
+["bt1","🎭 Титул: Актер","",500,"title","Актер"],
+["bt2","🔥 Титул: Горячий","",1000,"title","Горячий"],
+["bt3","🧊 Титул: Ледяной","",2000,"title","Ледяной"],
+["bt4","🎩 Титул: Олигарх","",5000,"title","Олигарх"],
+["bt5","👑 Титул: Царь","",10000,"title","Царь"],
+["bt6","💰 Титул: Миллионер","",100000,"title","Миллионер"]
+];
+
+let D={coins:0,lvl:1,xp:0,active_title:"Новичок",owned_titles:["Новичок"],achievements:[]};
+let UC=null, UT=0, timer=null, cdTimer=null;
+
+const tu=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user;
+if(tu){
+  const n=((tu.first_name||"")+" "+(tu.last_name||"")).trim();
+  if(n){$("u-name").textContent=n;$("ava-txt").textContent=n.charAt(0).toUpperCase();}
+  if(tu.photo_url){const i=new Image();i.src=tu.photo_url;i.onload=()=>{$("ava").textContent="";$("ava").appendChild(i);};}
+}
+
+const fmt=n=>n>=1000&&n%1000===0?(n/1000)+"к":String(n);
+const owned=()=>D.owned_titles&&D.owned_titles.length?D.owned_titles:["Новичок"];
+function cdLeft(){const t=+localStorage.getItem("um")||0;return Math.max(0,UNMUTE_CD-Math.floor((Date.now()-t)/1000));}
+
+function render(){
+  const d=D, coins=+d.coins||0;
+  $("u-coins").textContent="🪙 "+coins;
+  $("u-lvl").textContent="Уровень "+(d.lvl||1);
+  $("u-xp").textContent=(d.xp||0)+" / 100";
+  $("u-bar").style.width=Math.min(100,d.xp||0)+"%";
+  $("u-title").textContent=d.active_title||"Новичок";
+  const f=d.facts||"Пока ничего…";
+  $("facts-preview").textContent=f;
+  $("facts-full").textContent=f;
+  const done=A.filter(a=>(d.achievements||[]).includes(a[0])||(+d[a[3]]||0)>=a[4]).length;
+  $("ach-preview").textContent="Выполнено: "+done+" из "+A.length;
+  renderShop();
+}
+
+function renderShop(){
+  const box=$("shop");box.textContent="";
+  SHOP.forEach(it=>{
+    const [code,name,desc,price,type,tn]=it;
+    const has=type==="title"?owned().includes(tn):(type==="vip"&&D.vip);
+    const left=type==="unmute"?cdLeft():0;
+    const row=document.createElement("div");row.className="shop-item";
+    const l=document.createElement("div");
+    const t=document.createElement("div");t.className="shop-title";t.textContent=name;l.appendChild(t);
+    if(desc){const s=document.createElement("div");s.className="shop-desc";s.textContent=desc;l.appendChild(s);}
+    const b=document.createElement("button");b.className="buy-btn";
+    if(has){b.textContent="Есть";b.disabled=true;}
+    else if(left>0){b.textContent=left+"с";b.disabled=true;}
+    else{b.textContent=fmt(price)+" 🪙";b.disabled=(+D.coins||0)<price;b.onclick=()=>buy(it);}
+    row.appendChild(l);row.appendChild(b);box.appendChild(row);
+  });
+  if(cdLeft()>0&&!cdTimer)cdTimer=setInterval(()=>{if(cdLeft()<=0){clearInterval(cdTimer);cdTimer=null;}renderShop();},1000);
+}
+
+function go(code){
+  if(tg){try{tg.HapticFeedback.notificationOccurred("success");}catch(e){}
+    tg.openTelegramLink("https://t.me/"+BOT+"?start="+code);}
+}
+function buy(it){
+  const [code,name,desc,price,type]=it;
+  const run=()=>{if(type==="unmute"){localStorage.setItem("um",Date.now());renderShop();}go(code);};
+  const q="Купить «"+name.replace(/^\S+\s/,"")+"» за "+price+" монет?";
+  if(tg&&tg.showConfirm)tg.showConfirm(q,ok=>{if(ok)run();});else if(confirm(q))run();
+}
+function selectTag(i){closeModal("tag-modal");go("ct"+i);}
+
+const q=new URLSearchParams(location.search);
+if(q.has("coins")){
+  UT=+q.get("v")||0;
+  UC={coins:+q.get("coins")||0,lvl:+q.get("lvl")||1,xp:+q.get("xp")||0};
+  if(q.get("title"))UC.active_title=q.get("title");
+  D=Object.assign(D,UC);
+}
+function fromBin(rec){
+  const o=Object.assign({},rec);
+  if(UC&&UT>(rec.ts||0))Object.assign(o,UC);
+  D=o;render();
+  $("stamp").textContent=rec.ts?"Синхронизировано "+new Date(rec.ts*1000).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";
+}
+async function load(){
+  try{
+    const r=await fetch(BIN,{headers:{"X-Access-Key":READ_KEY}});
+    if(!r.ok)throw new Error(r.status);
+    const db=(await r.json()).record||{};
+    const uid=tu&&tu.id, rec=uid&&db[uid];
+    if(rec)fromBin(rec);else{render();$("stamp").textContent="Профиль появится после первого сообщения боту";}
+  }catch(e){render();$("stamp").textContent="Нет связи, показаны последние данные";}
+}
+function start(){stop();load();timer=setInterval(load,POLL_MS);}
+function stop(){if(timer){clearInterval(timer);timer=null;}}
+document.addEventListener("visibilitychange",()=>document.hidden?stop():start());
+render();start();
+
+function openModal(id){
+  if(id==="tag-modal"){
+    const l=$("tag-list");l.textContent="";
+    owned().forEach((t,i)=>{const d=document.createElement("div");d.className="tag-item"+(t===D.active_title?" on":"");d.textContent=t;d.onclick=()=>selectTag(i);l.appendChild(d);});
+  }else if(id==="ach-modal"){
+    const l=$("ach-list");l.textContent="";
+    A.forEach(a=>{
+      const [aid,n,ds,st,tg2,rw,tit]=a, cur=+D[st]||0, ok=(D.achievements||[]).includes(aid)||cur>=tg2;
+      const p=Math.min(100,Math.floor(cur/tg2*100));
+      const d=document.createElement("div");d.className="ach-item";
+      const h=document.createElement("div");h.className="ach-header";
+      const s1=document.createElement("span");s1.textContent=n;
+      const s2=document.createElement("span");s2.textContent=ok?"✅":cur+"/"+tg2;if(ok)s2.className="done";
+      h.appendChild(s1);h.appendChild(s2);d.appendChild(h);
+      const e=document.createElement("div");e.className="ach-desc";e.textContent=ds;d.appendChild(e);
+      let rt="";if(rw>0)rt+="+"+rw+" 🪙 ";if(tit)rt+="Титул: "+tit;
+      if(rt){const r=document.createElement("div");r.className="ach-reward";r.textContent=rt;d.appendChild(r);}
+      const pb=document.createElement("div");pb.className="pbar";const pf=document.createElement("div");pf.className="pfill";pf.style.width=p+"%";pb.appendChild(pf);d.appendChild(pb);
+      l.appendChild(d);
+    });
+  }
+  const el=$(id),c=$(id+"-content");
+  c.style.transition="none";c.style.transform="";el.classList.add("active");
+  document.body.style.overflow="hidden";void c.offsetWidth;c.style.transition="";
+}
+function closeModal(id){
+  $(id).classList.remove("active");$(id+"-content").style.transform="";
+  document.body.style.overflow="";
+}
+
+let sY=0,cY=0,drag=null;
+document.querySelectorAll(".drag-area").forEach(a=>{
+  const st=e=>{sY=cY=e.touches?e.touches[0].clientY:e.clientY;drag=a.dataset.m;$(drag+"-content").style.transition="none";};
+  a.addEventListener("touchstart",st,{passive:true});a.addEventListener("mousedown",st);
+});
+function mv(e){if(!drag)return;cY=e.touches?e.touches[0].clientY:e.clientY;if(cY>sY)$(drag+"-content").style.transform="translateY("+(cY-sY)+"px)";}
+function en(){
+  if(!drag)return;const id=drag,c=$(id+"-content");drag=null;c.style.transition="";
+  if(cY-sY>innerHeight*.2)closeModal(id);else c.style.transform="";
+  sY=cY=0;
+}
+document.addEventListener("touchmove",mv,{passive:true});document.addEventListener("touchend",en);
+document.addEventListener("mousemove",mv);document.addEventListener("mouseup",en);
+</script>
+</body>
+</html>
